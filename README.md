@@ -30,6 +30,9 @@ npm run dev
 
 访问 http://localhost:3000
 
+Check-in 页面: http://localhost:3000/checkin
+API 文档: http://localhost:8000/docs
+
 ## 测试
 
 ```bash
@@ -51,7 +54,9 @@ docker-compose up -d
 ```
 sleepmate-agent/
 ├── frontend/       # Next.js 前端
+│   └── src/app/checkin/  # 睡前 Check-in 页面
 ├── backend/        # FastAPI 后端
+│   └── app/services/     # 业务逻辑层
 ├── docs/           # 设计文档
 ├── scripts/        # 工具脚本
 ├── infra/          # 基础设施配置
@@ -62,7 +67,7 @@ sleepmate-agent/
 
 - [x] Phase 0: 项目规格设计
 - [x] Phase 1: 项目骨架 + health check
-- [ ] Phase 2: Check-in 页面和 API
+- [x] Phase 2: Check-in 页面和 API
 - [ ] Phase 3: 睡眠日志数据库
 - [ ] Phase 4: 睡眠评分和 Dashboard
 - [ ] Phase 5: LLM 生成助眠计划
