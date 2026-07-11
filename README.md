@@ -31,15 +31,16 @@ npm run dev
 访问 http://localhost:3000
 
 Check-in 页面: http://localhost:3000/checkin
+Dashboard 页面: http://localhost:3000/dashboard
 API 文档: http://localhost:8000/docs
 
 ## 测试
 
 ```bash
-# 后端测试
+# 后端测试 (101 tests)
 cd backend && pytest -v
 
-# 前端测试
+# 前端测试 (9 tests)
 cd frontend && npm test
 ```
 
@@ -54,13 +55,16 @@ docker-compose up -d
 ```
 sleepmate-agent/
 ├── frontend/
-│   └── src/app/checkin/
+│   └── src/app/
+│       ├── checkin/
+│       └── dashboard/
 ├── backend/
 │   └── app/
 │       ├── api/
 │       │   ├── health.py
 │       │   ├── checkin.py
-│       │   └── sleep_log.py
+│       │   ├── sleep_log.py
+│       │   └── dashboard.py
 │       ├── core/
 │       │   ├── config.py
 │       │   └── database.py
@@ -68,16 +72,21 @@ sleepmate-agent/
 │       │   └── sleep_log.py
 │       ├── schemas/
 │       │   ├── checkin.py
-│       │   └── sleep_log.py
+│       │   ├── sleep_log.py
+│       │   └── dashboard.py
 │       ├── repositories/
 │       │   └── sleep_log_repo.py
 │       └── services/
 │           ├── checkin_service.py
-│           └── sleep_log_service.py
+│           ├── sleep_log_service.py
+│           ├── sleep_score_service.py
+│           └── dashboard_service.py
 │   └── tests/
 │       ├── test_health.py
 │       ├── test_checkin.py
-│       └── test_sleep_log.py
+│       ├── test_sleep_log.py
+│       ├── test_sleep_score.py
+│       └── test_dashboard.py
 ├── docs/
 ├── scripts/
 ├── infra/
@@ -90,7 +99,7 @@ sleepmate-agent/
 - [x] Phase 1: 项目骨架 + health check
 - [x] Phase 2: Check-in 页面和 API
 - [x] Phase 3: 睡眠日志数据库
-- [ ] Phase 4: 睡眠评分和 Dashboard
+- [x] Phase 4: 睡眠评分和 Dashboard
 - [ ] Phase 5: LLM 生成助眠计划
 - [ ] Phase 6: LangGraph Agent 工作流
 - [ ] Phase 7: RAG 知识库

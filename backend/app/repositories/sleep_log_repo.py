@@ -24,3 +24,14 @@ def get_recent_logs(db: Session, days: int = 7) -> list[SleepLog]:
         .order_by(SleepLog.log_date.desc())
         .all()
     )
+
+
+def get_logs_for_dashboard(db: Session, days: int) -> list[SleepLog]:
+    cutoff = date.today() - timedelta(days=days - 1)
+    today = date.today()
+    return (
+        db.query(SleepLog)
+        .filter(SleepLog.log_date >= cutoff, SleepLog.log_date <= today)
+        .order_by(SleepLog.log_date.desc())
+        .all()
+    )

@@ -25,14 +25,12 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
-
-
 # import model so it is registered on Base.metadata before create_all
 from app.models.sleep_log import SleepLog  # noqa: E402, F401
 
 
 def setup_module():
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=TEST_ENGINE)
 
 
