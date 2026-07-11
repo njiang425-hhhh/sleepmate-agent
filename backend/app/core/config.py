@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "SleepMate Agent"
     API_PREFIX: str = "/api/v1"
     ENV: str = "development"
+    DATABASE_URL: str = "sqlite:///./sleepmate.db"
     LLM_API_KEY: str = ""
     LLM_MODEL: str = "gpt-4o-mini"
 

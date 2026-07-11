@@ -7,7 +7,7 @@
 - **Frontend**: Next.js + TypeScript + Tailwind CSS
 - **Backend**: FastAPI + Python
 - **Agent**: LangGraph
-- **Database**: SQLite (Phase 3+)
+- **Database**: SQLite + SQLAlchemy
 - **RAG**: Chroma (Phase 7+)
 - **TTS**: (Phase 8+)
 
@@ -53,13 +53,34 @@ docker-compose up -d
 
 ```
 sleepmate-agent/
-├── frontend/       # Next.js 前端
-│   └── src/app/checkin/  # 睡前 Check-in 页面
-├── backend/        # FastAPI 后端
-│   └── app/services/     # 业务逻辑层
-├── docs/           # 设计文档
-├── scripts/        # 工具脚本
-├── infra/          # 基础设施配置
+├── frontend/
+│   └── src/app/checkin/
+├── backend/
+│   └── app/
+│       ├── api/
+│       │   ├── health.py
+│       │   ├── checkin.py
+│       │   └── sleep_log.py
+│       ├── core/
+│       │   ├── config.py
+│       │   └── database.py
+│       ├── models/
+│       │   └── sleep_log.py
+│       ├── schemas/
+│       │   ├── checkin.py
+│       │   └── sleep_log.py
+│       ├── repositories/
+│       │   └── sleep_log_repo.py
+│       └── services/
+│           ├── checkin_service.py
+│           └── sleep_log_service.py
+│   └── tests/
+│       ├── test_health.py
+│       ├── test_checkin.py
+│       └── test_sleep_log.py
+├── docs/
+├── scripts/
+├── infra/
 └── docker-compose.yml
 ```
 
@@ -68,7 +89,7 @@ sleepmate-agent/
 - [x] Phase 0: 项目规格设计
 - [x] Phase 1: 项目骨架 + health check
 - [x] Phase 2: Check-in 页面和 API
-- [ ] Phase 3: 睡眠日志数据库
+- [x] Phase 3: 睡眠日志数据库
 - [ ] Phase 4: 睡眠评分和 Dashboard
 - [ ] Phase 5: LLM 生成助眠计划
 - [ ] Phase 6: LangGraph Agent 工作流
