@@ -10,6 +10,7 @@ interface Analysis {
 interface Props {
   analysis: Analysis;
   onReset: () => void;
+  onGenerateRoutine?: () => void;
 }
 
 const RISK_COLORS: Record<string, string> = {
@@ -31,7 +32,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   audio_relaxation: "音频放松",
 };
 
-export default function CheckinResult({ analysis, onReset }: Props) {
+export default function CheckinResult({ analysis, onReset, onGenerateRoutine }: Props) {
   return (
     <div className="space-y-6">
       <div
@@ -65,6 +66,15 @@ export default function CheckinResult({ analysis, onReset }: Props) {
           建议时长: {analysis.recommended_duration_minutes} 分钟
         </p>
       </div>
+
+      {onGenerateRoutine && (
+        <button
+          onClick={onGenerateRoutine}
+          className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-500 transition"
+        >
+          生成今晚助眠计划
+        </button>
+      )}
 
       <button
         onClick={onReset}

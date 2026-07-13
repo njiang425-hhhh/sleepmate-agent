@@ -2,6 +2,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CheckinPage from "@/app/checkin/page";
 
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn() }),
+}));
+
 beforeEach(() => {
   jest.restoreAllMocks();
   Object.defineProperty(global, "fetch", { value: jest.fn(), writable: true });
@@ -62,6 +66,7 @@ describe("Checkin Page", () => {
     expect(screen.getByText("状态良好")).toBeInTheDocument();
     expect(screen.getByText("冥想")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重新填写" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "生成今晚助眠计划" })).toBeInTheDocument();
   });
 
   it("shows error message on API failure", async () => {

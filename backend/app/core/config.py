@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,8 +10,10 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api/v1"
     ENV: str = "development"
     DATABASE_URL: str = "sqlite:///./sleepmate.db"
-    LLM_API_KEY: str = ""
-    LLM_MODEL: str = "gpt-4o-mini"
+    LLM_MODE: Literal["mock", "real"] = "mock"
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    LLM_TIMEOUT_SECONDS: int = 30
 
 
 settings = Settings()

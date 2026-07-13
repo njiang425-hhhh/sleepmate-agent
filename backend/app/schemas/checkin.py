@@ -16,7 +16,7 @@ class CheckinRequest(BaseModel):
     screen_time_minutes: int = Field(ge=0)
     available_minutes: AvailableMinutesType
     preferred_audio: AudioType
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=500)
 
 
 class AnalysisResult(BaseModel):

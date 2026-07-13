@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import CheckinForm from "./components/CheckinForm";
 import CheckinResult from "./components/CheckinResult";
 
@@ -31,6 +32,7 @@ interface CheckinResponse {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export default function CheckinPage() {
+  const router = useRouter();
   const [result, setResult] = useState<CheckinResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -63,6 +65,13 @@ export default function CheckinPage() {
     setError(null);
   };
 
+  const handleGenerateRoutine = () => {
+    if (result?.checkin) {
+      sessionStorage.setItem("checkinData", JSON.stringify(result.checkin));
+      router.push("/routine");
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white">
       <div className="mx-auto max-w-lg px-4 py-12">
@@ -76,7 +85,11 @@ export default function CheckinPage() {
         )}
 
         {result ? (
-          <CheckinResult analysis={result.analysis} onReset={handleReset} />
+          <CheckinResult
+            analysis={result.analysis}
+            onReset={handleReset}
+            onGenerateRoutine={handleGenerateRoutine}
+          />
         ) : (
           <CheckinForm onSubmit={handleSubmit} loading={loading} />
         )}
