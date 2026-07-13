@@ -37,10 +37,10 @@ API 文档: http://localhost:8000/docs
 ## 测试
 
 ```bash
-# 后端测试 (101 tests)
+# 后端测试 (129 tests)
 cd backend && pytest -v
 
-# 前端测试 (9 tests)
+# 前端测试 (19 tests)
 cd frontend && npm test
 ```
 
@@ -50,21 +50,41 @@ cd frontend && npm test
 docker-compose up -d
 ```
 
+## LLM 配置
+
+```bash
+# .env 中配置
+LLM_MODE=mock      # mock: 不调用真实 API; real: 调用 OpenAI
+OPENAI_API_KEY=     # real 模式必填
+OPENAI_MODEL=gpt-4o-mini
+LLM_TIMEOUT_SECONDS=30
+```
+
+mock 模式下无需 API key，测试和开发均可直接使用。
+
 ## 项目结构
 
 ```
 sleepmate-agent/
 ├── frontend/
-│   └── src/app/
-│       ├── checkin/
-│       └── dashboard/
+│   └── src/
+│       ├── app/
+│       │   ├── checkin/
+│       │   ├── dashboard/
+│       │   └── routine/
+│       ├── types/
+│       │   ├── checkin.ts
+│       │   └── routine.ts
+│       └── lib/
+│           └── routine-api.ts
 ├── backend/
 │   └── app/
 │       ├── api/
 │       │   ├── health.py
 │       │   ├── checkin.py
 │       │   ├── sleep_log.py
-│       │   └── dashboard.py
+│       │   ├── dashboard.py
+│       │   └── routine.py
 │       ├── core/
 │       │   ├── config.py
 │       │   └── database.py
@@ -73,20 +93,26 @@ sleepmate-agent/
 │       ├── schemas/
 │       │   ├── checkin.py
 │       │   ├── sleep_log.py
-│       │   └── dashboard.py
+│       │   ├── dashboard.py
+│       │   └── routine.py
 │       ├── repositories/
 │       │   └── sleep_log_repo.py
 │       └── services/
 │           ├── checkin_service.py
 │           ├── sleep_log_service.py
 │           ├── sleep_score_service.py
-│           └── dashboard_service.py
+│           ├── dashboard_service.py
+│           ├── llm_provider.py
+│           ├── llm_service.py
+│           ├── routine_service.py
+│           └── safety_resources.py
 │   └── tests/
 │       ├── test_health.py
 │       ├── test_checkin.py
 │       ├── test_sleep_log.py
 │       ├── test_sleep_score.py
-│       └── test_dashboard.py
+│       ├── test_dashboard.py
+│       └── test_routine.py
 ├── docs/
 ├── scripts/
 ├── infra/
@@ -100,7 +126,7 @@ sleepmate-agent/
 - [x] Phase 2: Check-in 页面和 API
 - [x] Phase 3: 睡眠日志数据库
 - [x] Phase 4: 睡眠评分和 Dashboard
-- [ ] Phase 5: LLM 生成助眠计划
+- [x] Phase 5: LLM 生成助眠计划
 - [ ] Phase 6: LangGraph Agent 工作流
 - [ ] Phase 7: RAG 知识库
 - [ ] Phase 8: TTS 音频
