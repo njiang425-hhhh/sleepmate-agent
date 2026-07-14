@@ -37,7 +37,7 @@ API 文档: http://localhost:8000/docs
 ## 测试
 
 ```bash
-# 后端测试 (129 tests)
+# 后端测试 (181 tests)
 cd backend && pytest -v
 
 # 前端测试 (19 tests)
@@ -85,6 +85,15 @@ sleepmate-agent/
 │       │   ├── sleep_log.py
 │       │   ├── dashboard.py
 │       │   └── routine.py
+│       ├── agents/
+│       │   ├── state.py
+│       │   ├── runtime.py
+│       │   ├── graph.py
+│       │   ├── nodes.py
+│       │   └── domain/
+│       │       ├── crisis_detector.py
+│       │       ├── safety_validator.py
+│       │       └── history_analyzer.py
 │       ├── core/
 │       │   ├── config.py
 │       │   └── database.py
@@ -112,7 +121,8 @@ sleepmate-agent/
 │       ├── test_sleep_log.py
 │       ├── test_sleep_score.py
 │       ├── test_dashboard.py
-│       └── test_routine.py
+│       ├── test_routine.py
+│       └── test_graph.py
 ├── docs/
 ├── scripts/
 ├── infra/
@@ -127,7 +137,7 @@ sleepmate-agent/
 - [x] Phase 3: 睡眠日志数据库
 - [x] Phase 4: 睡眠评分和 Dashboard
 - [x] Phase 5: LLM 生成助眠计划
-- [ ] Phase 6: LangGraph Agent 工作流
+- [x] Phase 6: LangGraph Agent 工作流 — 使用 LangGraph 重构助眠计划生成，包含安全分析、条件分流、历史读取、计划生成、安全校验、重试/fallback 和响应组装。crisis/distress 路径不调用 LLM。默认使用 mock 模式。
 - [ ] Phase 7: RAG 知识库
 - [ ] Phase 8: TTS 音频
 - [ ] Phase 9: E2E 测试

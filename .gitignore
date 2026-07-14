@@ -37,3 +37,6 @@ coverage/
 
 # Docker
 *.log
+
+# tools
+.mimocode/

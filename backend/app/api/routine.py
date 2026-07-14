@@ -13,7 +13,7 @@ async def generate_routine(
     request: RoutineGenerateRequest,
     db: Session = Depends(get_db),
 ) -> RoutineGenerateResponse:
-    return routine_service.generate_routine(
+    return routine_service.generate_routine_via_graph(
         checkin=request.checkin,
         db=db,
         history_days=request.history_days,

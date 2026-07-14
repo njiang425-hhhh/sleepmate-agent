@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -40,6 +41,11 @@ class ProviderParseError(ProviderError):
 
 
 class LLMProvider(ABC):
+    @property
+    @abstractmethod
+    def mode(self) -> Literal["mock", "real"]:
+        ...
+
     @abstractmethod
     def generate(self, ctx: RoutineGenerationContext) -> SleepRoutine:
         ...
@@ -114,6 +120,10 @@ MOCK_ROUTINES: dict[str, SleepRoutine] = {
 
 
 class MockLLMProvider(LLMProvider):
+    @property
+    def mode(self) -> Literal["mock"]:
+        return "mock"
+
     def generate(self, ctx: RoutineGenerationContext) -> SleepRoutine:
         if ctx.stress_level >= 7 or ctx.mood == "stressed":
             return MOCK_ROUTINES["high_stress"]

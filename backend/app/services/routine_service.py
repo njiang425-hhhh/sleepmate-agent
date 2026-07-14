@@ -251,3 +251,42 @@ def generate_routine(
 
 
 from app.core.config import settings  # noqa: E402
+
+
+_graph_cache = None
+
+
+def _get_compiled_graph():
+    global _graph_cache
+    if _graph_cache is None:
+        from app.agents.graph import build_graph
+
+        _graph_cache = build_graph()
+    return _graph_cache
+
+
+def generate_routine_via_graph(
+    checkin: CheckinRequest,
+    db: Session,
+    history_days: int = 7,
+):
+    from fastapi import HTTPException
+
+    from app.agents.runtime import AgentRuntimeContext
+
+    graph = _get_compiled_graph()
+    provider = get_provider()
+    ctx = AgentRuntimeContext(db=db, provider=provider)
+
+    try:
+        result = graph.invoke(
+            {"checkin": checkin, "history_days": history_days},
+            context=ctx,
+            recursion_limit=12,
+        )
+    except ProviderTimeoutError:
+        raise HTTPException(
+            status_code=503, detail="LLM 服务暂时不可用，请稍后重试"
+        )
+
+    return result["response"]
