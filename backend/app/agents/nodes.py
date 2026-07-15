@@ -16,6 +16,8 @@ from app.schemas.routine import (
     SupportiveClarificationResponse,
 )
 from app.schemas.checkin import CheckinRequest
+from app.schemas.knowledge import KnowledgeContext
+from app.services.embedding_provider import EmbeddingUnavailableError
 from app.services.llm_provider import (
     ProviderError,
     ProviderTimeoutError,
@@ -71,6 +73,7 @@ def _get_checkin(state: AgentState) -> CheckinRequest:
 
 def _build_context(state: AgentState) -> RoutineGenerationContext:
     checkin = _get_checkin(state)
+    kctx = state.get("knowledge_context")
     return RoutineGenerationContext(
         mood=checkin.mood,
         energy_level=checkin.energy_level,
@@ -87,6 +90,7 @@ def _build_context(state: AgentState) -> RoutineGenerationContext:
         avg_stress=state.get("avg_stress"),
         avg_screen=state.get("avg_screen"),
         record_count=state.get("record_count", 0),
+        knowledge_chunks=kctx.chunks if kctx else [],
     )
 
 
@@ -104,6 +108,7 @@ def initialize_state_node(
         "avg_quality": None,
         "avg_stress": None,
         "avg_screen": None,
+        "knowledge_context": None,
         "routine": None,
         "retry_count": 0,
         "response": None,
@@ -171,6 +176,31 @@ def retrieve_history_node(
     return analyze_history(logs)
 
 
+def retrieve_sleep_knowledge_node(
+    state: AgentState, *, runtime: Runtime[AgentRuntimeContext]
+) -> dict:
+    """从 RAG 知识库检索相关助眠知识. 优雅降级."""
+    rag_service = runtime.context.rag_service
+
+    if rag_service is None:
+        return {"knowledge_context": KnowledgeContext(status="disabled")}
+
+    try:
+        checkin = _get_checkin(state)
+        history_stats = None
+        if state.get("history_available"):
+            history_stats = {
+                "avg_stress": state.get("avg_stress"),
+                "avg_latency": state.get("avg_latency"),
+            }
+        ctx = rag_service.retrieve(checkin, history_stats)
+        return {"knowledge_context": ctx}
+    except EmbeddingUnavailableError:
+        return {"knowledge_context": KnowledgeContext(status="unavailable")}
+    except Exception:
+        return {"knowledge_context": KnowledgeContext(status="unavailable")}
+
+
 def generate_routine_node(
     state: AgentState, *, runtime: Runtime[AgentRuntimeContext]
 ) -> dict:
@@ -227,11 +257,21 @@ def finalize_response_node(
     routine = state["routine"]
     generation_mode = state.get("generation_mode", "mock")
 
+    kctx = state.get("knowledge_context")
+    rag_status = "disabled"
+    knowledge_sources: list[str] = []
+    if kctx is not None:
+        status = kctx.status
+        rag_status = "success" if status == "used" else status if status in ("empty", "unavailable", "disabled") else "error"
+        knowledge_sources = list({c.source for c in kctx.chunks})
+
     meta = RoutineMeta(
         history_available=state.get("history_available", False),
         history_record_count=state.get("record_count", 0),
         generation_mode=generation_mode,
         generated_at=datetime.now(timezone.utc),
+        rag_status=rag_status,
+        knowledge_sources=knowledge_sources,
     )
 
     return {

@@ -35,6 +35,9 @@ coverage/
 *.sqlite
 *.sqlite3
 
+# vector database
+chroma_db/
+
 # Docker
 *.log
 

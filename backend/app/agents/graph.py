@@ -10,6 +10,7 @@ from app.agents.nodes import (
     increment_retry_node,
     initialize_state_node,
     retrieve_history_node,
+    retrieve_sleep_knowledge_node,
     route_after_safety,
     route_after_safety_check,
     safety_check_node,
@@ -25,6 +26,7 @@ def build_graph() -> StateGraph:
     workflow.add_node("build_safety_redirect", build_safety_redirect_node)
     workflow.add_node("build_supportive_response", build_supportive_response_node)
     workflow.add_node("retrieve_history", retrieve_history_node)
+    workflow.add_node("retrieve_sleep_knowledge", retrieve_sleep_knowledge_node)
     workflow.add_node("generate_routine", generate_routine_node)
     workflow.add_node("safety_check", safety_check_node)
     workflow.add_node("increment_retry", increment_retry_node)
@@ -46,7 +48,8 @@ def build_graph() -> StateGraph:
 
     workflow.add_edge("build_safety_redirect", "finalize_response")
     workflow.add_edge("build_supportive_response", "finalize_response")
-    workflow.add_edge("retrieve_history", "generate_routine")
+    workflow.add_edge("retrieve_history", "retrieve_sleep_knowledge")
+    workflow.add_edge("retrieve_sleep_knowledge", "generate_routine")
     workflow.add_edge("generate_routine", "safety_check")
 
     workflow.add_conditional_edges(

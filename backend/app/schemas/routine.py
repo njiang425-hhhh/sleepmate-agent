@@ -32,6 +32,8 @@ class RoutineMeta(BaseModel):
     history_record_count: int
     generation_mode: Literal["mock", "real", "fallback", "rule_based"]
     generated_at: datetime
+    rag_status: Literal["success", "empty", "unavailable", "disabled", "error"] = "disabled"
+    knowledge_sources: list[str] = Field(default_factory=list)
 
 
 class RoutineSuccessResponse(BaseModel):

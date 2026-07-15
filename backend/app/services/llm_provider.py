@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.knowledge import RetrievedChunk
 from app.schemas.routine import RoutineStep, SleepRoutine
 
 
@@ -22,6 +23,7 @@ class RoutineGenerationContext(BaseModel):
     avg_stress: float | None = None
     avg_screen: float | None = None
     record_count: int = 0
+    knowledge_chunks: list[RetrievedChunk] = Field(default_factory=list)
 
 
 class ProviderError(Exception):

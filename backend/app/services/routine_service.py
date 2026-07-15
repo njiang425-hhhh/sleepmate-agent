@@ -269,6 +269,7 @@ def generate_routine_via_graph(
     checkin: CheckinRequest,
     db: Session,
     history_days: int = 7,
+    rag_service=None,
 ):
     from fastapi import HTTPException
 
@@ -276,7 +277,7 @@ def generate_routine_via_graph(
 
     graph = _get_compiled_graph()
     provider = get_provider()
-    ctx = AgentRuntimeContext(db=db, provider=provider)
+    ctx = AgentRuntimeContext(db=db, provider=provider, rag_service=rag_service)
 
     try:
         result = graph.invoke(

@@ -8,7 +8,7 @@
 - **Backend**: FastAPI + Python
 - **Agent**: LangGraph
 - **Database**: SQLite + SQLAlchemy
-- **RAG**: Chroma (Phase 7+)
+- **RAG**: Chroma + OpenAI Embedding
 - **TTS**: (Phase 8+)
 
 ## 快速开始
@@ -37,7 +37,7 @@ API 文档: http://localhost:8000/docs
 ## 测试
 
 ```bash
-# 后端测试 (181 tests)
+# 后端测试 (222 tests)
 cd backend && pytest -v
 
 # 前端测试 (19 tests)
@@ -62,6 +62,35 @@ LLM_TIMEOUT_SECONDS=30
 
 mock 模式下无需 API key，测试和开发均可直接使用。
 
+## RAG 知识库配置
+
+```bash
+# .env 中配置
+RAG_ENABLED=false                    # 启用 RAG 知识库检索
+EMBEDDING_PROVIDER=fake              # fake: 测试用; openai: 使用 OpenAI embedding
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIMENSIONS=1536
+CHROMA_PERSIST_DIR=chroma_db
+CHROMA_COLLECTION_NAME=sleepmate_knowledge
+KNOWLEDGE_BASE_DIR=data/knowledge_base
+RAG_TOP_K=3
+RAG_MAX_CONTEXT_TOKENS=1500
+```
+
+### 导入知识库
+
+```bash
+cd backend
+python -m scripts.ingest_knowledge
+```
+
+### 查询知识库
+
+```bash
+cd backend
+python -m scripts.query_knowledge "高压力放松呼吸"
+```
+
 ## 项目结构
 
 ```
@@ -78,6 +107,15 @@ sleepmate-agent/
 │       └── lib/
 │           └── routine-api.ts
 ├── backend/
+│   ├── data/
+│   │   └── knowledge_base/
+│   │       ├── sleep_hygiene.md
+│   │       ├── breathing_exercises.md
+│   │       ├── mindfulness_scripts.md
+│   │       └── relaxation_templates.md
+│   ├── scripts/
+│   │   ├── ingest_knowledge.py
+│   │   └── query_knowledge.py
 │   └── app/
 │       ├── api/
 │       │   ├── health.py
@@ -103,6 +141,7 @@ sleepmate-agent/
 │       │   ├── checkin.py
 │       │   ├── sleep_log.py
 │       │   ├── dashboard.py
+│       │   ├── knowledge.py
 │       │   └── routine.py
 │       ├── repositories/
 │       │   └── sleep_log_repo.py
@@ -114,7 +153,10 @@ sleepmate-agent/
 │           ├── llm_provider.py
 │           ├── llm_service.py
 │           ├── routine_service.py
-│           └── safety_resources.py
+│           ├── safety_resources.py
+│           ├── embedding_provider.py
+│           ├── embedding_service.py
+│           └── rag_service.py
 │   └── tests/
 │       ├── test_health.py
 │       ├── test_checkin.py
@@ -122,7 +164,11 @@ sleepmate-agent/
 │       ├── test_sleep_score.py
 │       ├── test_dashboard.py
 │       ├── test_routine.py
-│       └── test_graph.py
+│       ├── test_graph.py
+│       ├── test_embedding_provider.py
+│       ├── test_rag_service.py
+│       ├── test_ingest_knowledge.py
+│       └── test_knowledge_node.py
 ├── docs/
 ├── scripts/
 ├── infra/
@@ -137,8 +183,8 @@ sleepmate-agent/
 - [x] Phase 3: 睡眠日志数据库
 - [x] Phase 4: 睡眠评分和 Dashboard
 - [x] Phase 5: LLM 生成助眠计划
-- [x] Phase 6: LangGraph Agent 工作流 — 使用 LangGraph 重构助眠计划生成，包含安全分析、条件分流、历史读取、计划生成、安全校验、重试/fallback 和响应组装。crisis/distress 路径不调用 LLM。默认使用 mock 模式。
-- [ ] Phase 7: RAG 知识库
+- [x] Phase 6: LangGraph Agent 工作流
+- [x] Phase 7: RAG 知识库 — Chroma 向量存储 + OpenAI Embedding + 睡眠知识文档。Agent 新增 retrieve_sleep_knowledge_node，从知识库检索相关内容辅助生成助眠计划。支持优雅降级，RAG 不可用时不影响核心功能。222 测试全部通过。
 - [ ] Phase 8: TTS 音频
 - [ ] Phase 9: E2E 测试
 - [ ] Phase 10: 安全审查、README、部署

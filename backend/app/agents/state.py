@@ -1,6 +1,7 @@
 from typing import Literal, NotRequired, TypedDict
 
 from app.schemas.checkin import CheckinRequest
+from app.schemas.knowledge import KnowledgeContext
 from app.schemas.routine import RoutineGenerateResponse, SleepRoutine
 
 
@@ -26,6 +27,8 @@ class AgentState(TypedDict):
     avg_quality: NotRequired[float | None]
     avg_stress: NotRequired[float | None]
     avg_screen: NotRequired[float | None]
+
+    knowledge_context: NotRequired[KnowledgeContext | None]
 
     routine: NotRequired[SleepRoutine | None]
     retry_count: NotRequired[int]
