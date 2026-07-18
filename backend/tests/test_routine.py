@@ -2,13 +2,9 @@ from datetime import date, time
 from unittest.mock import patch
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.core.database import Base, get_db
-from app.main import app
+from app.core.database import Base
 from app.models.sleep_log import SleepLog
 from app.schemas.routine import SleepRoutine
 from app.services.llm_provider import (
@@ -18,38 +14,6 @@ from app.services.llm_provider import (
     ProviderTimeoutError,
 )
 from app.services import routine_service
-
-# ---------- test database setup ----------
-
-TEST_ENGINE = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=TEST_ENGINE)
-
-
-def override_get_db():
-    db = TestSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-def setup_module():
-    app.dependency_overrides[get_db] = override_get_db
-    Base.metadata.create_all(bind=TEST_ENGINE)
-
-
-def teardown_module():
-    Base.metadata.drop_all(bind=TEST_ENGINE)
-
-
-def _fresh_client():
-    Base.metadata.drop_all(bind=TEST_ENGINE)
-    Base.metadata.create_all(bind=TEST_ENGINE)
-    return TestClient(app)
 
 
 def _insert_log(db, log_date, **overrides):
@@ -72,6 +36,11 @@ def _insert_log(db, log_date, **overrides):
     return log
 
 
+def _recent_dates(n=3):
+    today = date.today()
+    return [today - __import__("datetime").timedelta(days=i) for i in range(n - 1, -1, -1)]
+
+
 VALID_CHECKIN = {
     "mood": "relaxed",
     "energy_level": 5,
@@ -89,13 +58,11 @@ VALID_PAYLOAD = {
 
 
 class TestBasicFlow:
-    def test_low_stress_with_history(self):
-        client = _fresh_client()
-        db = TestSessionLocal()
-        _insert_log(db, date(2026, 7, 10))
-        _insert_log(db, date(2026, 7, 11))
-        _insert_log(db, date(2026, 7, 12))
-        db.close()
+    def test_low_stress_with_history(self, client, db_session):
+        dates = _recent_dates(3)
+        _insert_log(db_session, dates[0])
+        _insert_log(db_session, dates[1])
+        _insert_log(db_session, dates[2])
 
         resp = client.post("/api/v1/routine/generate", json=VALID_PAYLOAD)
         assert resp.status_code == 200
@@ -107,8 +74,7 @@ class TestBasicFlow:
         assert data["meta"]["history_available"] is True
         assert data["meta"]["history_record_count"] == 3
 
-    def test_high_stress(self):
-        client = _fresh_client()
+    def test_high_stress(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "stress_level": 8, "mood": "stressed"},
             "history_days": 7,
@@ -119,8 +85,7 @@ class TestBasicFlow:
         assert data["type"] == "success"
         assert data["routine"]["title"] == "高压力呼吸引导放松"
 
-    def test_no_history_data(self):
-        client = _fresh_client()
+    def test_no_history_data(self, client):
         resp = client.post("/api/v1/routine/generate", json=VALID_PAYLOAD)
         assert resp.status_code == 200
         data = resp.json()
@@ -128,8 +93,7 @@ class TestBasicFlow:
         assert data["meta"]["history_available"] is False
         assert data["meta"]["history_record_count"] == 0
 
-    def test_notes_none(self):
-        client = _fresh_client()
+    def test_notes_none(self, client):
         payload = {
             "checkin": {k: v for k, v in VALID_CHECKIN.items() if k != "notes"},
             "history_days": 7,
@@ -140,8 +104,7 @@ class TestBasicFlow:
 
 
 class TestCrisisDetection:
-    def test_explicit_self_harm(self):
-        client = _fresh_client()
+    def test_explicit_self_harm(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "notes": "我想自杀"},
             "history_days": 7,
@@ -153,8 +116,7 @@ class TestCrisisDetection:
         assert len(data["immediate_actions"]) > 0
         assert data["meta"]["generation_mode"] == "rule_based"
 
-    def test_explicit_no_will_to_live(self):
-        client = _fresh_client()
+    def test_explicit_no_will_to_live(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "notes": "活不下去了"},
             "history_days": 7,
@@ -163,8 +125,7 @@ class TestCrisisDetection:
         assert resp.status_code == 200
         assert resp.json()["type"] == "safety_redirect"
 
-    def test_vague_pain(self):
-        client = _fresh_client()
+    def test_vague_pain(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "notes": "太痛苦了，受不了了"},
             "history_days": 7,
@@ -175,8 +136,7 @@ class TestCrisisDetection:
         assert data["type"] == "supportive_clarification"
         assert data["meta"]["generation_mode"] == "rule_based"
 
-    def test_distress_with_stressed_mood(self):
-        client = _fresh_client()
+    def test_distress_with_stressed_mood(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "mood": "stressed", "notes": "好累"},
             "history_days": 7,
@@ -185,8 +145,7 @@ class TestCrisisDetection:
         assert resp.status_code == 200
         assert resp.json()["type"] == "supportive_clarification"
 
-    def test_normal_notes(self):
-        client = _fresh_client()
+    def test_normal_notes(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "notes": "今天工作压力大"},
             "history_days": 7,
@@ -195,8 +154,7 @@ class TestCrisisDetection:
         assert resp.status_code == 200
         assert resp.json()["type"] == "success"
 
-    def test_stressed_mood_no_distress_notes(self):
-        client = _fresh_client()
+    def test_stressed_mood_no_distress_notes(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "mood": "stressed"},
             "history_days": 7,
@@ -213,16 +171,14 @@ class TestCrisisDetection:
 
 
 class TestSchemaValidation:
-    def test_steps_order_contiguous(self):
-        client = _fresh_client()
+    def test_steps_order_contiguous(self, client):
         resp = client.post("/api/v1/routine/generate", json=VALID_PAYLOAD)
         data = resp.json()
         steps = data["routine"]["steps"]
         orders = [s["order"] for s in steps]
         assert orders == list(range(1, len(steps) + 1))
 
-    def test_steps_duration_matches_total(self):
-        client = _fresh_client()
+    def test_steps_duration_matches_total(self, client):
         resp = client.post("/api/v1/routine/generate", json=VALID_PAYLOAD)
         data = resp.json()
         routine = data["routine"]
@@ -230,27 +186,23 @@ class TestSchemaValidation:
         total_minutes = total_seconds // 60
         assert abs(total_minutes - routine["duration_minutes"]) <= 2
 
-    def test_duration_not_exceed_available(self):
-        client = _fresh_client()
+    def test_duration_not_exceed_available(self, client):
         resp = client.post("/api/v1/routine/generate", json=VALID_PAYLOAD)
         data = resp.json()
         assert data["routine"]["duration_minutes"] <= VALID_CHECKIN["available_minutes"]
 
-    def test_safety_notice_in_response(self):
-        client = _fresh_client()
+    def test_safety_notice_in_response(self, client):
         resp = client.post("/api/v1/routine/generate", json=VALID_PAYLOAD)
         data = resp.json()
         assert "safety_notice" in data
         assert "仅供参考" in data["safety_notice"]
 
-    def test_generation_mode_is_mock(self):
-        client = _fresh_client()
+    def test_generation_mode_is_mock(self, client):
         resp = client.post("/api/v1/routine/generate", json=VALID_PAYLOAD)
         data = resp.json()
         assert data["meta"]["generation_mode"] == "mock"
 
-    def test_notes_too_long_returns_422(self):
-        client = _fresh_client()
+    def test_notes_too_long_returns_422(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "notes": "x" * 501},
             "history_days": 7,
@@ -260,8 +212,7 @@ class TestSchemaValidation:
 
 
 class TestProviderErrors:
-    def test_provider_timeout_returns_503(self):
-        client = _fresh_client()
+    def test_provider_timeout_returns_503(self, client):
         with patch.object(routine_service, "get_provider") as mock_get:
             mock_provider = MockLLMProvider()
             mock_provider.generate = lambda ctx: (_ for _ in ()).throw(ProviderTimeoutError("timeout"))
@@ -269,8 +220,7 @@ class TestProviderErrors:
             resp = client.post("/api/v1/routine/generate", json=VALID_PAYLOAD)
             assert resp.status_code == 503
 
-    def test_provider_refused_returns_fallback(self):
-        client = _fresh_client()
+    def test_provider_refused_returns_fallback(self, client):
         with patch.object(routine_service, "get_provider") as mock_get:
             mock_provider = MockLLMProvider()
             mock_provider.generate = lambda ctx: (_ for _ in ()).throw(ProviderRefusedError("refused"))
@@ -282,8 +232,7 @@ class TestProviderErrors:
             assert data["meta"]["generation_mode"] == "fallback"
             assert data["routine"]["title"] == "呼吸引导放松"
 
-    def test_provider_parse_error_returns_fallback(self):
-        client = _fresh_client()
+    def test_provider_parse_error_returns_fallback(self, client):
         with patch.object(routine_service, "get_provider") as mock_get:
             mock_provider = MockLLMProvider()
             mock_provider.generate = lambda ctx: (_ for _ in ()).throw(ProviderError("parse failed"))
@@ -292,8 +241,7 @@ class TestProviderErrors:
             assert resp.status_code == 200
             assert resp.json()["meta"]["generation_mode"] == "fallback"
 
-    def test_safety_validation_retry_then_fallback(self):
-        client = _fresh_client()
+    def test_safety_validation_retry_then_fallback(self, client):
         call_count = 0
 
         def bad_generate(ctx):
@@ -335,8 +283,7 @@ class TestConfigAndSafety:
         finally:
             os.environ["LLM_MODE"] = "mock"
 
-    def test_prompt_injection_in_notes(self):
-        client = _fresh_client()
+    def test_prompt_injection_in_notes(self, client):
         payload = {
             "checkin": {
                 **VALID_CHECKIN,
@@ -352,8 +299,7 @@ class TestConfigAndSafety:
         assert "system prompt" not in routine_str.lower()
         assert "系统提示" not in routine_str
 
-    def test_no_real_network_request(self):
-        client = _fresh_client()
+    def test_no_real_network_request(self, client):
         with patch("app.services.llm_provider.MockLLMProvider.generate") as mock_gen:
             mock_gen.return_value = SleepRoutine(
                 title="test",
@@ -368,8 +314,7 @@ class TestConfigAndSafety:
 
 
 class TestInputValidation:
-    def test_invalid_mood_returns_422(self):
-        client = _fresh_client()
+    def test_invalid_mood_returns_422(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "mood": "happy"},
             "history_days": 7,
@@ -377,8 +322,7 @@ class TestInputValidation:
         resp = client.post("/api/v1/routine/generate", json=payload)
         assert resp.status_code == 422
 
-    def test_stress_out_of_range_returns_422(self):
-        client = _fresh_client()
+    def test_stress_out_of_range_returns_422(self, client):
         payload = {
             "checkin": {**VALID_CHECKIN, "stress_level": 11},
             "history_days": 7,
@@ -386,8 +330,7 @@ class TestInputValidation:
         resp = client.post("/api/v1/routine/generate", json=payload)
         assert resp.status_code == 422
 
-    def test_history_days_out_of_range_returns_422(self):
-        client = _fresh_client()
+    def test_history_days_out_of_range_returns_422(self, client):
         payload = {"checkin": VALID_CHECKIN, "history_days": 0}
         resp = client.post("/api/v1/routine/generate", json=payload)
         assert resp.status_code == 422

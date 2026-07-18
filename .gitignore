@@ -41,5 +41,10 @@ chroma_db/
 # Docker
 *.log
 
+# TTS audio files
+backend/static/audio/*.mp3
+backend/static/audio/*.part
+!backend/static/audio/.gitkeep
+
 # tools
 .mimocode/

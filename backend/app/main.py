@@ -1,9 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from app.api.audio import router as audio_router
 from app.api.checkin import router as checkin_router
 from app.api.dashboard import router as dashboard_router
 from app.api.health import router as health_router
@@ -34,7 +37,7 @@ async def lifespan(app: FastAPI):
 
             provider = create_embedding_provider()
             persist_dir = str(
-                __import__("pathlib").Path(__file__).resolve().parent.parent / settings.CHROMA_PERSIST_DIR
+                Path(__file__).resolve().parent.parent / settings.CHROMA_PERSIST_DIR
             )
             _rag_service = RAGService(
                 persist_dir=persist_dir,
@@ -52,8 +55,50 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("RAG disabled (RAG_ENABLED=False)")
 
+    # TTS init
+    from app.services.audio_storage import AudioStorage
+    from app.services.tts_provider import FakeTTSProvider, OpenAITTSProvider
+    from app.services.tts_service import TTSConfig, TTSService
+
+    tts_config = TTSConfig(
+        model=settings.TTS_MODEL,
+        voice=settings.TTS_VOICE,
+        speed=settings.TTS_SPEED,
+        response_format=settings.TTS_RESPONSE_FORMAT,
+        instructions=settings.TTS_INSTRUCTIONS,
+        provider_name=settings.TTS_MODE,
+        max_chars=settings.TTS_MAX_CHARS,
+    )
+
+    if settings.TTS_MODE == "real":
+        if not settings.OPENAI_API_KEY:
+            raise RuntimeError(
+                "TTS_MODE is 'real' but OPENAI_API_KEY is not set. "
+                "Set OPENAI_API_KEY or change TTS_MODE to 'fake'."
+            )
+        tts_provider = OpenAITTSProvider(
+            api_key=settings.OPENAI_API_KEY,
+            model=settings.TTS_MODEL,
+            voice=settings.TTS_VOICE,
+            response_format=settings.TTS_RESPONSE_FORMAT,
+            speed=settings.TTS_SPEED,
+            timeout_seconds=settings.TTS_TIMEOUT_SECONDS,
+        )
+    else:
+        tts_provider = FakeTTSProvider()
+
+    tts_storage = AudioStorage()
+    app.state.tts_service = TTSService(provider=tts_provider, storage=tts_storage, config=tts_config)
+    app.state.tts_provider = tts_provider
+    logger.info("TTS service initialized (mode=%s)", settings.TTS_MODE)
+
     yield
 
+    # Cleanup
+    if hasattr(app.state, "tts_provider") and app.state.tts_provider:
+        await app.state.tts_provider.close()
+    app.state.tts_service = None
+    app.state.tts_provider = None
     _rag_service = None
 
 
@@ -78,3 +123,9 @@ app.include_router(checkin_router, prefix=settings.API_PREFIX)
 app.include_router(sleep_log_router, prefix=settings.API_PREFIX)
 app.include_router(dashboard_router, prefix=settings.API_PREFIX)
 app.include_router(routine_router, prefix=settings.API_PREFIX)
+app.include_router(audio_router, prefix=settings.API_PREFIX)
+
+# Mount only the audio subdirectory for static files
+_audio_static_dir = Path(__file__).resolve().parent.parent / "static" / "audio"
+_audio_static_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/static/audio", StaticFiles(directory=str(_audio_static_dir)), name="audio-static")

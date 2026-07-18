@@ -35,5 +35,15 @@ class Settings(BaseSettings):
     RAG_MAX_CONTEXT_TOKENS: int = 1500
     RAG_MAX_DISTANCE: float | None = None
 
+    # TTS
+    TTS_MODE: Literal["fake", "real"] = "fake"
+    TTS_MODEL: str = "gpt-4o-mini-tts"
+    TTS_VOICE: str = "alloy"
+    TTS_SPEED: float = 0.9
+    TTS_RESPONSE_FORMAT: str = "mp3"
+    TTS_INSTRUCTIONS: str = "请用温柔、平静、缓慢的语气朗读以下内容，适合睡前助眠引导。"
+    TTS_TIMEOUT_SECONDS: int = 60
+    TTS_MAX_CHARS: int = 4096
+
 
 settings = Settings()
