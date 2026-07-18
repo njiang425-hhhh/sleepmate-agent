@@ -9,7 +9,7 @@
 - **Agent**: LangGraph
 - **Database**: SQLite + SQLAlchemy
 - **RAG**: Chroma + OpenAI Embedding
-- **TTS**: (Phase 8+)
+- **TTS**: OpenAI TTS (gpt-4o-mini-tts) / FakeTTS
 
 ## 快速开始
 
@@ -32,15 +32,16 @@ npm run dev
 
 Check-in 页面: http://localhost:3000/checkin
 Dashboard 页面: http://localhost:3000/dashboard
+Routine 页面: http://localhost:3000/routine
 API 文档: http://localhost:8000/docs
 
 ## 测试
 
 ```bash
-# 后端测试 (222 tests)
+# 后端测试 (242 tests)
 cd backend && pytest -v
 
-# 前端测试 (19 tests)
+# 前端测试 (32 tests)
 cd frontend && npm test
 ```
 
@@ -61,6 +62,24 @@ LLM_TIMEOUT_SECONDS=30
 ```
 
 mock 模式下无需 API key，测试和开发均可直接使用。
+
+## TTS 音频配置
+
+```bash
+# .env 中配置
+TTS_MODE=fake                         # fake: 测试用静音音频; real: 调用 OpenAI TTS
+TTS_MODEL=gpt-4o-mini-tts             # OpenAI TTS 模型
+TTS_VOICE=alloy                       # 语音风格: alloy/echo/fable/onyx/nova/shimmer
+TTS_SPEED=0.9                         # 语速 (0.25-4.0)
+TTS_RESPONSE_FORMAT=mp3               # 音频格式
+TTS_INSTRUCTIONS=请用温柔、平静、缓慢的语气朗读  # 语音指令
+TTS_TIMEOUT_SECONDS=60                # 超时时间
+TTS_MAX_CHARS=4096                    # 最大文本长度
+```
+
+fake 模式下无需 API key，生成静音占位音频用于开发测试。
+real 模式需要有效的 `OPENAI_API_KEY`，调用 OpenAI `gpt-4o-mini-tts` 生成真实语音。
+相同文本 + 相同配置会缓存音频文件，避免重复调用 API。
 
 ## RAG 知识库配置
 
@@ -101,11 +120,15 @@ sleepmate-agent/
 │       │   ├── checkin/
 │       │   ├── dashboard/
 │       │   └── routine/
+│       │       └── components/
+│       │           ├── AudioPlayer.tsx
+│       │           └── RoutineCard.tsx
 │       ├── types/
 │       │   ├── checkin.ts
 │       │   └── routine.ts
 │       └── lib/
-│           └── routine-api.ts
+│           ├── routine-api.ts
+│           └── audio-api.ts
 ├── backend/
 │   ├── data/
 │   │   └── knowledge_base/
@@ -116,13 +139,17 @@ sleepmate-agent/
 │   ├── scripts/
 │   │   ├── ingest_knowledge.py
 │   │   └── query_knowledge.py
+│   ├── static/
+│   │   └── audio/
+│   │       └── .gitkeep
 │   └── app/
 │       ├── api/
 │       │   ├── health.py
 │       │   ├── checkin.py
 │       │   ├── sleep_log.py
 │       │   ├── dashboard.py
-│       │   └── routine.py
+│       │   ├── routine.py
+│       │   └── audio.py
 │       ├── agents/
 │       │   ├── state.py
 │       │   ├── runtime.py
@@ -142,7 +169,8 @@ sleepmate-agent/
 │       │   ├── sleep_log.py
 │       │   ├── dashboard.py
 │       │   ├── knowledge.py
-│       │   └── routine.py
+│       │   ├── routine.py
+│       │   └── audio.py
 │       ├── repositories/
 │       │   └── sleep_log_repo.py
 │       └── services/
@@ -156,8 +184,12 @@ sleepmate-agent/
 │           ├── safety_resources.py
 │           ├── embedding_provider.py
 │           ├── embedding_service.py
-│           └── rag_service.py
+│           ├── rag_service.py
+│           ├── tts_provider.py
+│           ├── tts_service.py
+│           └── audio_storage.py
 │   └── tests/
+│       ├── conftest.py
 │       ├── test_health.py
 │       ├── test_checkin.py
 │       ├── test_sleep_log.py
@@ -168,7 +200,8 @@ sleepmate-agent/
 │       ├── test_embedding_provider.py
 │       ├── test_rag_service.py
 │       ├── test_ingest_knowledge.py
-│       └── test_knowledge_node.py
+│       ├── test_knowledge_node.py
+│       └── test_tts.py
 ├── docs/
 ├── scripts/
 ├── infra/
@@ -185,6 +218,6 @@ sleepmate-agent/
 - [x] Phase 5: LLM 生成助眠计划
 - [x] Phase 6: LangGraph Agent 工作流
 - [x] Phase 7: RAG 知识库 — Chroma 向量存储 + OpenAI Embedding + 睡眠知识文档。Agent 新增 retrieve_sleep_knowledge_node，从知识库检索相关内容辅助生成助眠计划。支持优雅降级，RAG 不可用时不影响核心功能。222 测试全部通过。
-- [ ] Phase 8: TTS 音频
+- [x] Phase 8: TTS 音频 — 按需生成语音引导，支持 Fake/Real 模式，SHA256 缓存，原子写入，242 后端测试 + 32 前端测试全部通过。
 - [ ] Phase 9: E2E 测试
 - [ ] Phase 10: 安全审查、README、部署
