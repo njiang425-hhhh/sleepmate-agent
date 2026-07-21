@@ -8,6 +8,18 @@ from app.core.database import Base, get_db
 from app.main import app
 
 
+@pytest.fixture(autouse=True)
+def _clear_rate_limiter():
+    """Clear in-memory rate limiter state between tests."""
+    yield
+    limiter = getattr(app.state, "limiter", None)
+    if limiter and hasattr(limiter, "_storage"):
+        try:
+            limiter._storage.reset()
+        except Exception:
+            pass
+
+
 @pytest.fixture()
 def db_engine():
     engine = create_engine(

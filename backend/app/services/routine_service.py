@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import datetime, timezone
 from enum import Enum
@@ -23,6 +24,8 @@ from app.services.llm_provider import (
 )
 from app.services.llm_service import SYSTEM_PROMPT, build_user_prompt, get_provider
 from app.services.safety_resources import DEFAULT_RESOURCES
+
+logger = logging.getLogger(__name__)
 
 SAFETY_NOTICE = "本计划仅供参考，不替代专业医疗建议。如有持续睡眠问题，请咨询医生。"
 
@@ -238,16 +241,18 @@ def generate_routine(
             meta=meta,
         )
     except ProviderTimeoutError:
-        from fastapi import HTTPException
-
-        raise HTTPException(status_code=503, detail="LLM 服务暂时不可用，请稍后重试")
-    except Exception:
+        raise
+    except ProviderError as e:
+        logger.warning("Provider error during routine generation: %s", e)
         meta.generation_mode = "fallback"
         return RoutineSuccessResponse(
             routine=FALLBACK_ROUTINE,
             safety_notice=SAFETY_NOTICE,
             meta=meta,
         )
+    except Exception as e:
+        logger.exception("Unexpected error during routine generation")
+        raise
 
 
 from app.core.config import settings  # noqa: E402
@@ -271,8 +276,6 @@ def generate_routine_via_graph(
     history_days: int = 7,
     rag_service=None,
 ):
-    from fastapi import HTTPException
-
     from app.agents.runtime import AgentRuntimeContext
 
     graph = _get_compiled_graph()
@@ -286,8 +289,9 @@ def generate_routine_via_graph(
             recursion_limit=12,
         )
     except ProviderTimeoutError:
-        raise HTTPException(
-            status_code=503, detail="LLM 服务暂时不可用，请稍后重试"
-        )
+        raise
+    except Exception as e:
+        logger.exception("Unexpected error in graph execution")
+        raise
 
     return result["response"]

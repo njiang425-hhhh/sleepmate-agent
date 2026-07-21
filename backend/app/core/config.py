@@ -45,5 +45,13 @@ class Settings(BaseSettings):
     TTS_TIMEOUT_SECONDS: int = 60
     TTS_MAX_CHARS: int = 4096
 
+    # Rate limiting (per-IP, in-memory)
+    RATE_LIMIT_TTS: str = "10/minute"
+    RATE_LIMIT_ROUTINE: str = "20/minute"
+
+    # Audio cache governance
+    AUDIO_RETENTION_HOURS: int = 168  # 7 days
+    AUDIO_MAX_TOTAL_MB: int = 500
+
 
 settings = Settings()

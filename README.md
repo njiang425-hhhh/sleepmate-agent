@@ -2,6 +2,8 @@
 
 个性化 AI 助眠助手 — 基于 LangGraph Agent + RAG + TTS 的助眠应用。
 
+> **免责声明**：本应用仅供放松和助眠参考，不构成医疗建议、诊断或治疗方案。如有持续睡眠问题或心理健康困扰，请咨询专业医生或医疗机构。
+
 ## 技术栈
 
 - **Frontend**: Next.js + TypeScript + Tailwind CSS

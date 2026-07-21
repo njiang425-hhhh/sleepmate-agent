@@ -2,9 +2,12 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.api.audio import router as audio_router
 from app.api.checkin import router as checkin_router
@@ -14,6 +17,7 @@ from app.api.routine import router as routine_router
 from app.api.sleep_log import router as sleep_log_router
 from app.core.config import settings
 from app.core.database import engine, Base
+from app.core.limiter import limiter
 from app.models.sleep_log import SleepLog  # noqa: F401 — ensure model is registered
 
 logger = logging.getLogger(__name__)
@@ -92,6 +96,15 @@ async def lifespan(app: FastAPI):
     app.state.tts_provider = tts_provider
     logger.info("TTS service initialized (mode=%s)", settings.TTS_MODE)
 
+    # Audio cache cleanup at startup (non-blocking)
+    try:
+        tts_storage.run_cleanup(
+            retention_hours=settings.AUDIO_RETENTION_HOURS,
+            max_total_mb=settings.AUDIO_MAX_TOTAL_MB,
+        )
+    except Exception as e:
+        logger.error("Audio cache cleanup failed at startup: %s", e)
+
     yield
 
     # Cleanup
@@ -109,13 +122,27 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# Global exception handler — never expose internal details
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "服务器内部错误"},
+    )
+
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 app.include_router(health_router, prefix=settings.API_PREFIX)

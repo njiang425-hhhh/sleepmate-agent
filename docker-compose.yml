@@ -22,7 +22,8 @@ services:
     volumes:
       - ./frontend/src:/app/src
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
 volumes:
   chroma_data:

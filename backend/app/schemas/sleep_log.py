@@ -14,7 +14,7 @@ class SleepLogCreate(BaseModel):
     stress_level: int = Field(ge=1, le=10)
     caffeine_after_3pm: bool = False
     screen_time_minutes: int = Field(ge=0)
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=1000)
 
 
 class SleepLogResponse(BaseModel):

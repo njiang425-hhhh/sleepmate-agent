@@ -60,7 +60,8 @@ export default function RoutinePage() {
     <main className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white">
       <div className="mx-auto max-w-lg px-4 py-12">
         <h1 className="text-3xl font-bold mb-2">今晚助眠计划</h1>
-        <p className="text-slate-400 mb-8">根据你的状态量身定制</p>
+        <p className="text-slate-400 mb-4">根据你的状态量身定制</p>
+        <p className="text-xs text-slate-500 mb-8">本计划仅供放松参考，不替代专业医疗建议。如有持续睡眠问题，请咨询医生。</p>
 
         {missingData && <RoutineEmptyState />}
 
