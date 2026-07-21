@@ -16,7 +16,11 @@ export default function AudioPlayer({ audioPath }: Props) {
     setHasError(false);
   }, [audioPath]);
 
-  if (hasError) return null;
+  if (hasError) {
+    return (
+      <p className="text-sm text-amber-400">音频加载失败，请检查网络后重试。</p>
+    );
+  }
 
   if (!src) return null;
 

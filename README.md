@@ -41,9 +41,14 @@ API 文档: http://localhost:8000/docs
 # 后端测试 (242 tests)
 cd backend && pytest -v
 
-# 前端测试 (32 tests)
+# 前端单元测试 (32 tests)
 cd frontend && npm test
+
+# E2E 测试 (8 tests)
+cd frontend && npm run test:e2e
 ```
+
+E2E 测试基于 Playwright + Chromium，全部 API 走 route mock，不依赖后端服务和外部 API。
 
 ## Docker
 
@@ -115,6 +120,13 @@ python -m scripts.query_knowledge "高压力放松呼吸"
 ```
 sleepmate-agent/
 ├── frontend/
+│   ├── e2e/
+│   │   ├── fixtures/
+│   │   │   ├── mock-data.ts
+│   │   │   └── mock-api.ts
+│   │   ├── full-flow.spec.ts
+│   │   └── tts.spec.ts
+│   ├── playwright.config.ts
 │   └── src/
 │       ├── app/
 │       │   ├── checkin/
@@ -219,5 +231,5 @@ sleepmate-agent/
 - [x] Phase 6: LangGraph Agent 工作流
 - [x] Phase 7: RAG 知识库 — Chroma 向量存储 + OpenAI Embedding + 睡眠知识文档。Agent 新增 retrieve_sleep_knowledge_node，从知识库检索相关内容辅助生成助眠计划。支持优雅降级，RAG 不可用时不影响核心功能。222 测试全部通过。
 - [x] Phase 8: TTS 音频 — 按需生成语音引导，支持 Fake/Real 模式，SHA256 缓存，原子写入，242 后端测试 + 32 前端测试全部通过。
-- [ ] Phase 9: E2E 测试
+- [x] Phase 9: E2E 测试 — Playwright 8 条用例：完整用户流程 + TTS 生成/降级/防抖，全部 API route mock
 - [ ] Phase 10: 安全审查、README、部署

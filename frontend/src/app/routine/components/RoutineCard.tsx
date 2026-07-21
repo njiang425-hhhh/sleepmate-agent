@@ -28,6 +28,7 @@ export default function RoutineCard({ data }: Props) {
       setAudioPath(result.audio_path);
     } catch {
       setAudioError("音频生成失败，文字脚本仍可使用");
+      setAudioRequested(false);
     } finally {
       setAudioLoading(false);
     }
